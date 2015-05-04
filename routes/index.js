@@ -47,10 +47,10 @@ var areFriends = function(user1, user2, callback) {
 					data2 = results[1];
 					console.log(data1);
 					console.log(data2);
-					id1 = data1.userid;
+					var id1 = data1.userid;
 					//console.log(id1);
-					id2 = data2.userid;
-					//console.log(id2);
+					var id2 = data2.userid;
+					console.log("id2 - 1 " + id2);
 	
 					friends.getSet(id1.toString(), function (err,data) {
 						if(err) {
@@ -59,9 +59,11 @@ var areFriends = function(user1, user2, callback) {
 						} else {
 							//var data2 = JSON.parse(data);
 							console.log(data);
-							var data2 = JSON.parse(data);
-							console.log(data2);
-							if(_.contains(data2,id2)) {
+							
+							console.log("id2 - 2 " + id2.toString());
+							console.log(user1 + user2);
+							//var data2 = JSON.parse(data);
+							if(_.contains(data,id2.toString())) {
 								callback(null, true);
 							} else {
 								callback(null,false);
@@ -133,7 +135,13 @@ exports.getData = function(req, res) {
 	//       or discard this function
 	
 	// Dummy response:  Consult the KVS and
-	// get the list of keys (users who have friends)
+	// get the list of keys (users who have friend
+	
+	async.series([
+	              function(callback) {
+	              	console.log("one callback");
+	            	  
+	      
 	friends.scanKeys(function(err,values) {
 		if (err)
 			throw err;
@@ -143,27 +151,57 @@ exports.getData = function(req, res) {
 			//req.session.loadedData = true;
 			
 			// Actually output the data
-			//res.send(values);
+			res.send(values);
 		}
 	});
+	callback(null,"one");
+	
+	              },
+	              function(callback) {
+	              	console.log("two callback");
+	              
+	
+	
 	
 	areFriends('sample3','sample4', function(err, data) {
 		if (err) {
 			console.log(err);
 		} else {
 			console.log(data);
+			
 		}
+		callback(null,"two");
 	});
+	
+	              },
+	              function(callback) {
+	              	console.log("three callback");
+	            	  
+	          
 	
 	areFriends('sample3','user10', function(err, data) {
 		if (err) {
 			console.log(err);
 		} else {
 			console.log(data);
+			
 		}
+		callback(null,"three");
 	});
 	
+	              }
+	              ],
+	              function(err,results) {
+	              	if(err) {
+	              		console.log('Error in getData');
+	              	} else {
+
+						console.log(results);
+					}
+	}
+	);
 }
+	
 
 /**
  * Example of another function handled by the route
@@ -252,11 +290,42 @@ exports.home = function(req,res){
 		return
 	}
 	
-	res.render('home', { title: 'home', 
-		userid: req.session.userid,
-		username: req.session.username, 
-		
-	});
+	var username = req.session.username;
+	if(!username) {
+		res.status(401).send('Log in before the request');
+	}
+	
+	users.get(username, function(err,data) {
+		if(err) {
+			console.log('Error in home 1')
+			console.log(err);
+		} else {
+			data = JSON.parse(data);
+			var id = data.userid;
+			
+			friends.getSet(id.toString(), function(err,data) {
+				if(err) {
+					console.log('Error in home 2')
+					
+					console.log(err);
+				} else {
+					res.render('home', { title: 'home', 
+						userid: req.session.userid,
+						username: req.session.username, 
+						friends: data
+						
+					});
+					
+				}
+			});
+		}
+	} );
+	
+	
+	
+	
+	
+	
 }
 
 exports.createAccount = function(req,res){
@@ -350,15 +419,22 @@ exports.userWall = function (req,res) {
 							
 							posts = _.sortBy(posts,'time');
 							posts = posts.reverse();
-							
-							var areFriends = reqUserData;
-							var locals = {
+
+							areFriends(username,reqUser,function(err,result) {
+								if(err) {
+									console.log(err);
+								}
+
+
+								var locals = {
 									user: reqUserData,
-									posts: posts,
-							};
+									posts: posts
+								};
+
+								res.render('userwall',locals);
+
+							});	
 						}
-						
-						
 					});
 					
 				}
@@ -367,8 +443,5 @@ exports.userWall = function (req,res) {
 			
 		}
 	}
-	
-	
-
 }
 

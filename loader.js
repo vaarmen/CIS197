@@ -52,6 +52,10 @@ friends.init(function() {
 			// from string to integer, so we can reason about its
 			// range
 			var user = +edge[0];
+//			console.log('hey');
+//			console.log(edge[1]);
+//			console.log(edge[1].length);
+			edge[1] = edge[1].substring(0, edge[1].length - 1);
 			
 			if(user <= range){
 				//console.log(edge[0] +" " + edge[1]);
